@@ -3,9 +3,9 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { API_URL, getProjectBySlug, getProjects } from '@/lib/api';
+import { API_URL } from '@/lib/api';
 import { notFound } from 'next/navigation';
-import { Project, ProjectResponse } from '@/types';
+import { Project } from '@/types';
 
 async function getProject(slug: string) {
   const baseUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL ?? "http://localhost:1337";
