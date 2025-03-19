@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+  
+  strapi:
+    build:
+      context: .
+      dockerfile: docker/strapi.Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      NODE_ENV: production
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+    restart: always
+    command: npm run start
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/nextjs.Dockerfile
+    environment:
+      NEXT_PUBLIC_STRAPI_API_URL: ${NEXT_PUBLIC_STRAPI_API_URL}
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - frontend
+      - strapi
+    restart: always
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres-data:
